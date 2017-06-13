@@ -4,13 +4,12 @@
 // general teensy includes
 #include "kinetis.h"
 #include "core_pins.h"
-#include "usb_serial.h"
 //
 // application specifific includes
 #include "myApp.h"
 
 /**************************** this would be in *.ino: ****************************/
-#include <Audio.h>
+#include <AudioStream.h>
 
 #include "AudioTest.h"
 #include "AudioInterface.h"
@@ -23,7 +22,7 @@ AudioConnection patchCord1(test,interface);
 AudioConnection patchCord2(interface,usb);
 
 
-void c_yApp::setup() {
+void c_myApp::setup() {
   // put your setup code here, to run once:
   
   AudioMemory(16);
