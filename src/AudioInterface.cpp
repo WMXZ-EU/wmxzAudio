@@ -67,7 +67,7 @@ uint16_t c_buff::get(uint8_t * data, uint16_t len)
   return len;
 }
 
-static uint8_t audioBuffer[4*4*139*10];
+static uint8_t audioBuffer[4*4*139*4];
 
 c_buff audioStore(audioBuffer,sizeof(audioBuffer));
 
