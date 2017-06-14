@@ -29,25 +29,26 @@
 #include "AudioInterface.h"
 #include "AudioTest.h"
 
-#define AUDIO_NBUF 1088 // sufficient to hold 128*3750/441 samples
+#define AUDIO_NBUF (128*3750/441) // sufficient to hold 128*3750/441 samples
 #define TPI 6.2831853072f
 
-static int16_t waveform[AUDIO_NBUF];
+static int16_t waveform[2*AUDIO_NBUF];
 
 extern c_buff audioStore;
 
 void AudioTest::setup(int freq)
 {
-	for(int ii=0; ii<=AUDIO_NBUF; ii++)
+	for(int ii=0; ii<AUDIO_NBUF; ii++)
 	{ float phase = TPI*(float) freq/(float)AUDIO_NBUF;
-	  waveform[ii]=magnitude*sinf((ii+1)*phase);
+	  waveform[2*ii]=magnitude*sinf(ii*phase);
+    waveform[2*ii+1]=waveform[2*ii];
 	}
   // pur some data onto audioStore
-  audioStore.put((uint8_t *) waveform, 2*AUDIO_NBUF);
+  audioStore.put((uint8_t *) waveform, 2*2*AUDIO_NBUF);
 }
 
 void AudioTest::update(void)
 { // update audioStore in sync with Audio updata
-	audioStore.put((uint8_t *) waveform, 2*AUDIO_NBUF);
+	audioStore.put((uint8_t *) waveform, 2*2*AUDIO_NBUF);
 }
 

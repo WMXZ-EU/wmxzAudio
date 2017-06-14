@@ -15,8 +15,14 @@
 #include "AudioInterface.h"
 #include "AudioTrigger.h"
 
+#define F_SAMP 375000
+#define N_DAT (128*(F_SAMP/100)/441)   // number of samples per received DMA interrupt  
+
+static uint8_t audioBuffer[4*N_DAT*4]; 
+c_buff audioStore(audioBuffer,sizeof(audioBuffer));
+
 AudioTest       test;
-AudioInterface  interface(375000);
+AudioInterface  interface(&audioStore,F_SAMP);
 AudioOutputUSB  usb;
 AudioConnection patchCord1(test,interface);
 AudioConnection patchCord2(interface,usb);

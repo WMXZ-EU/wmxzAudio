@@ -29,7 +29,10 @@
 #ifndef AUDIOINTERFACE_H
 #define AUDIOINTERFACE_H
 
-#include "Arduino.h"
+//#include "kinetis.h"
+//#include "core_pins.h"
+//#include "usb_audio.h"
+#include <Arduino.h>
 #include "AudioStream.h"
 
 class c_buff
@@ -53,14 +56,15 @@ public:
 class AudioInterface : public AudioStream
 {
 public:
-	AudioInterface(int fsamp) : AudioStream(0, NULL) { init(fsamp);}
+	AudioInterface(c_buff * store, int fsamp) : AudioStream(0, NULL) { init(store, fsamp);}
 	virtual void update(void);
 private:
+	c_buff * audioStore;
 	int32_t jfs1, jfs2, isc;
 	int32_t n_src;
 	int16_t src_buffer[(2*AUDIO_BLOCK_SAMPLES*3750)/441]; // storage for up to 375 kHz stereo data
 	//
-	void init(int fsamp);
+	void init(c_buff * store, int fsamp);
 	void interpolate(int16_t *dst, const int16_t *src, int dj);
 };
 

@@ -67,19 +67,16 @@ uint16_t c_buff::get(uint8_t * data, uint16_t len)
   return len;
 }
 
-static uint8_t audioBuffer[4*4*139*4];
-
-c_buff audioStore(audioBuffer,sizeof(audioBuffer));
-
 /************************ AudioInterface **************************************************************/
 
-void AudioInterface::init(int fsamp)
-{ 	jfs1=fsamp;
+void AudioInterface::init(c_buff *store, int fsamp)
+{ 	audioStore = store;
+	jfs1=fsamp;
 	jfs2=44100;
 	while( ((jfs1 % 10) ==0) && ((jfs2 % 10))==0) { jfs1 /= 10; jfs2 /= 10; } 
 	jfs1 *= 10; jfs2 *= 10;
 	isc = jfs1 % jfs2;
-	n_src=139;//(uint16_t)((AUDIO_BLOCK_SAMPLES*jfs1)/jfs2); // number od samples in src_buffer
+	n_src=(uint16_t)((AUDIO_BLOCK_SAMPLES*jfs1)/jfs2); // number od samples in src_buffer
 }
 
 void AudioInterface::interpolate(int16_t *dst, const int16_t *src, int dj)
@@ -127,10 +124,11 @@ void AudioInterface::update(void)
 	//
 	uint32_t dj =(nn*(128*jfs1-n_src*jfs2)) % jfs2; // sample offset cross src buffer
 
-	int n2=audioStore.get((uint8_t *)src_buffer,4*n_src); // number of bytes for stereo
+	int ndat=4*n_src;
+	int n2=audioStore->get((uint8_t *)src_buffer, ndat); // number of bytes for stereo
 	
 	// check if we have sufficient data
-	if(n2 < 4*n_src) return;
+	if(n2 < ndat) return;
 	
 	left = allocate();  if (!left) return;
 	right = allocate(); if (!right) return;
