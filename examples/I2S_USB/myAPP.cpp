@@ -6,6 +6,17 @@
 // wmxzDevices
 // wmxzAudio
 
+// 02-july-2017: added quad ICS connections
+// T3.6 		Mic1 	Mic2 	Mic3 	Mic4
+// GND			GND		GND		GND		GND
+// 3.3V			VCC		VCC		VCC		VCC
+// Pin11		CLK		CLK		CLK		CLK
+// Pin12		WS		WS		WS		WS
+// Pin13		SD		SD		--		--
+// Pin38		--		--		SD		SD
+// 		 L/R	GND		VCC		GND		VCC
+//
+// for T3.2 replace Pin38 by Pin30
 //
 // general teensy includes
 #include "kinetis.h"
