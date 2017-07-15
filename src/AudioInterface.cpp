@@ -26,6 +26,11 @@
 // interfaces to Audio streaming
 //
 
+// general teensy includes
+#include "kinetis.h"
+#include "core_pins.h"
+#include "usb_serial.h"
+
 #include "AudioInterface.h"
 
 uint16_t c_buff::put(uint8_t * data, uint16_t len)
@@ -68,50 +73,44 @@ uint16_t c_buff::get(uint8_t * data, uint16_t len)
 }
 
 /************************ AudioInterface **************************************************************/
+//
+	int16_t src_buffer[(2*AUDIO_BLOCK_SAMPLES*3750)/441]; // storage for up to 375 kHz stereo data
+//
 
 void AudioInterface::init(c_buff *store, int fsamp)
 { 	audioStore = store;
 	jfs1=fsamp;
 	jfs2=44100;
+	
 	while( ((jfs1 % 10) ==0) && ((jfs2 % 10))==0) { jfs1 /= 10; jfs2 /= 10; } 
 	jfs1 *= 10; jfs2 *= 10;
-	isc = jfs1 % jfs2;
+	//
 	n_src=(uint16_t)((AUDIO_BLOCK_SAMPLES*jfs1)/jfs2); // number od samples in src_buffer
+	//
+	sc = (float) (n_src+1) / (float) (AUDIO_BLOCK_SAMPLES+1);	
 }
 
-void AudioInterface::interpolate(int16_t *dst, const int16_t *src, int dj)
+void AudioInterface::interpolate(int16_t *dst, const int16_t *src)
 {
+
 	for(int ii=0; ii<AUDIO_BLOCK_SAMPLES; ii++) dst[ii]=0;
 	for(int ii=0; ii<AUDIO_BLOCK_SAMPLES; ii++)
 	{	
-		int32_t i3 = (ii*jfs1 + dj+ (1+jfs2)/2)/jfs2;
+		uint32_t j0;
+		float tx;
 		
-		int32_t idt1 = (ii*jfs1 + dj) % jfs2; 
-		int32_t idt2, P1,P2;
+		tx = ii*sc;
+		// index into original
+		j0 = (uint32_t)tx;
+		// handle boundary
+		if(j0 == 0) j0 =1;
+		if(j0 == (n_src-1)) j0=n_src-2;
 		
-		int j0,j1,j2;
-		if(ii==0) // interpolate relative to left end
-		{	j0=i3; j1=j0+1; j2=j0+2;
-			idt2 = idt1-jfs2;
-			P1 = (src[2*j1] - src[2*j0]);
-			P2 = (src[2*j2] - 2*src[2*j1] + src[2*j0])/2;
-		}
-		else if(ii==AUDIO_BLOCK_SAMPLES-1)// extrapolate to right 
-		{
-			j0=i3-2; j1=j0+1; j2=j0+2;
-			idt2 = idt1+jfs2;
-			P1 = (src[2*j2] - src[2*j1]);
-			P2 = (src[2*j2] - 2*src[2*j1] + src[2*j0])/2;
-		}
-		else // interpolate right of middle point
-		{
-			j0=i3-1; j1=j0+1; j2=j0+2;
-			idt2 = idt1-jfs2;
-			P1 = (src[2*j2] - src[2*j1]);
-			P2 = (src[2*j2] - 2*src[2*j1] + src[2*j0])/2;
-		}
-		//
-		dst[ii] = src[2*i3] + (idt1 * (P1 + (idt2*P2)/jfs2))/jfs2;		
+		// distance to index 
+		dx1 = tx - (float)j0;
+		dst[ii] = src[2*j0]
+					+ ((src[2*j0+2] - src[2*j0-2])/2)*dx1
+					+ ((src[2*j0+2] - 2*src[2*j0] + src[2*j0-2])/4)*dx1*dx1;
 	}
 }
 
@@ -122,8 +121,6 @@ void AudioInterface::update(void)
 	//
 	static int nn=0;
 	//
-	uint32_t dj =(nn*(128*jfs1-n_src*jfs2)) % jfs2; // sample offset cross src buffer
-
 	int ndat=4*n_src;
 	int n2=audioStore->get((uint8_t *)src_buffer, ndat); // number of bytes for stereo
 	
@@ -136,12 +133,12 @@ void AudioInterface::update(void)
 	src = &src_buffer[0];
 	dst = left->data;
 	//
-	interpolate(dst, src, dj);
+	interpolate(dst, src);
 	
 	src = &src_buffer[1];
 	dst = right->data;
 	//
-	interpolate(dst, src, dj);
+	interpolate(dst, src);
 	
 	nn++;
 	nn %= jfs2;

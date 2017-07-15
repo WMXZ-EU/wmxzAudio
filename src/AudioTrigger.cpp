@@ -34,9 +34,9 @@ void AudioTrigger::init(void)
 	update_responsibility = update_setup();
 
 	// assign local function as ISR
-	_VectorsRam[IRQ_PIT_CH0 + 16] = isr;
-	NVIC_SET_PRIORITY(IRQ_PIT_CH0, prio*16);	
-	NVIC_ENABLE_IRQ(IRQ_PIT_CH0);
+	_VectorsRam[IRQ_PIT_CH2 + 16] = isr;
+	NVIC_SET_PRIORITY(IRQ_PIT_CH2, prio*16);
+	NVIC_ENABLE_IRQ(IRQ_PIT_CH2);
 
 	// turn on PIT clock
 	SIM_SCGC6 |= SIM_SCGC6_PIT;
@@ -44,14 +44,14 @@ void AudioTrigger::init(void)
 	PIT_MCR = 0x00;
 	
 	// Timer 0     
-	PIT_LDVAL0 = PIT_PERIOD;     
-	PIT_TCTRL0 = 2; // enable Timer 0 interrupts      
-	PIT_TCTRL0 |= 1; // start Timer 0
+	PIT_LDVAL2 = PIT_PERIOD;
+	PIT_TCTRL2 = 2; // enable Timer 2 interrupts
+	PIT_TCTRL2 |= 1; // start Timer 2
 }
 
 void AudioTrigger::isr(void)
 {
-	PIT_TFLG0=1;
+	PIT_TFLG2=1;
 	if (update_responsibility) AudioStream::update_all();
 }
 

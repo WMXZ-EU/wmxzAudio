@@ -59,13 +59,14 @@ public:
 	AudioInterface(c_buff * store, int fsamp) : AudioStream(0, NULL) { init(store, fsamp);}
 	virtual void update(void);
 private:
+	float sc, dx1;
+
 	c_buff * audioStore;
-	int32_t jfs1, jfs2, isc;
+	int32_t jfs1, jfs2;
 	int32_t n_src;
-	int16_t src_buffer[(2*AUDIO_BLOCK_SAMPLES*3750)/441]; // storage for up to 375 kHz stereo data
 	//
 	void init(c_buff * store, int fsamp);
-	void interpolate(int16_t *dst, const int16_t *src, int dj);
+	void interpolate(int16_t *dst, const int16_t *src);
 };
 
 #endif

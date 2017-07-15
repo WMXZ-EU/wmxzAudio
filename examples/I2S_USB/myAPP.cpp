@@ -61,8 +61,8 @@ void c_myApp::setup()
    AudioMemory(8);
    
   // initalize and start ICS43432 interface
-  ICS43432.init(F_SAMP, i2s_rx_buffer, N_BUF);
-  ICS43432.start();
+  if(ICS43432.init(F_SAMP, i2s_rx_buffer, N_BUF))
+	ICS43432.start();
 }
 
 void c_myApp::loop()
