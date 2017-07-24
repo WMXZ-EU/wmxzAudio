@@ -36,8 +36,10 @@ c_ICS43432 ICS43432;
 extern "C" void i2sInProcessing(void * s, void * d);
 
 #define N_CHAN 4    // number of channels
-#define N_DAT (128*(F_SAMP/100)/441)   // number of samples per received DMA interrupt 
-#define N_BUF 2 * N_CHAN * N_DAT    // dual buffer size for DMA 
+#define N_SAMP 128  // number of samples per aquisition
+
+#define N_DAT (128*(F_SAMP/100)/441)   // number of samples per USB buffer 
+#define N_BUF 2 * N_CHAN * N_SAMP    // dual buffer size for DMA 
 int32_t i2s_rx_buffer[N_BUF];       // buffer for DMA
 
 /****************************************************************************************/
@@ -46,8 +48,8 @@ int32_t i2s_rx_buffer[N_BUF];       // buffer for DMA
 #include "AudioInterface.h"
 #include "AudioTrigger.h"
 
-static uint8_t audioBuffer[4*N_DAT*4]; // 4 buffers for 2 int16 channels
-c_buff audioStore(audioBuffer,sizeof(audioBuffer));
+static uint32_t audioBuffer[4*N_DAT]; // 4 buffers for 2 int16 channels
+c_buff audioStore(audioBuffer,sizeof(audioBuffer)/4);
 
 AudioInterface  interface(&audioStore, F_SAMP);
 AudioOutputUSB  usb;
@@ -69,11 +71,10 @@ void c_myApp::loop()
 { 
 }
 
-#define AUDIO_NBUF N_DAT
 #define AUDIO_SHIFT 8 // for 24 bit to 16 bit conversion (should be larger/equal of 8
 #define ICHAN_LEFT  0
 #define ICHAN_RIGHT 1
-static int16_t waveform[2*AUDIO_NBUF];
+static int16_t waveform[2*N_SAMP];
 
 // following is called from I2S ISR
 void i2sInProcessing(void * s, void * d)
@@ -84,22 +85,23 @@ void i2sInProcessing(void * s, void * d)
 
 	int32_t *src = (int32_t *) d;
 	// for ICS43432 need to shift left to get correct MSB 
-	for(int ii=0; ii<N_CHAN*N_DAT;) 
+	for(int ii=0; ii<N_CHAN*N_SAMP;) 
 	{ src[ii++]<<=1; src[ii++]<<=1;src[ii++]<<=1; src[ii++]<<=1;}
 
 	// extract data from I2S buffer
-	for(int ii=0; ii<AUDIO_NBUF; ii++)
+	for(int ii=0; ii<N_SAMP; ii++)
 	{  
 	    waveform[2*ii]  =(int16_t)(src[ICHAN_LEFT +ii*N_CHAN]>>AUDIO_SHIFT);
 	    waveform[2*ii+1]=(int16_t)(src[ICHAN_RIGHT+ii*N_CHAN]>>AUDIO_SHIFT);
-      
-//      float arg=2.0f*3.1415926535f*3.0f*(float)ii/(float) AUDIO_NBUF;
-//      float amp=1<<3;
-//      waveform[2*ii]  =(int16_t)(amp*sinf(arg));
-//      waveform[2*ii+1]=(int16_t)(amp*sinf(arg));
+/*      
+      float arg=2.0f*3.1415926535f*3.0f*(float)ii/(float) N_SAMP;
+      float amp=1<<12;
+      waveform[2*ii]  =(int16_t)(amp*sinf(arg));
+      waveform[2*ii+1]=(int16_t)(amp*sinf(arg));
+*/
 	}
 	// put data onto audioStore
-	audioStore.put((uint8_t *) waveform, 4*AUDIO_NBUF);
+	audioStore.put((uint32_t *) waveform, N_SAMP);
 	//
 	is_I2S=0;
 }

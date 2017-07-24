@@ -33,61 +33,39 @@
 
 #include "AudioInterface.h"
 
-uint16_t c_buff::put(uint8_t * data, uint16_t len)
-{ int nn;
-   // consider overrun if top is len bytes below bot
-  nn=(top+len-bot+mbuf) % mbuf;
-  if( nn < len) return 0;
+uint16_t c_buff::put(uint32_t * data, uint16_t len)
+{  // consider overrun if nw is len bytes above nr + mbuf
+  if( (nw+len) > (nr+mbuf)) return 0;
   //
-  if((top+len)<mbuf)
-  {  nn=len;
-     for(int ii=0; ii<nn; ii++) buffer[top++]=*data++;
-  }
-  else
-  {  nn=mbuf-top;
-     for(int ii=0; ii<nn; ii++) buffer[top++]=*data++;
-     top=0;
-     for(int ii=0; ii<len-nn; ii++) buffer[top++]=*data++;
-  }
+  for(int ii=0; ii<len; ii++) buffer[(nw+ii) % mbuf] = data[ii];
+  nw += len;
   return len;
 }
 
 //
-uint16_t c_buff::get(uint8_t * data, uint16_t len)
-{  int nn;
-  nn=(top-bot+mbuf) % mbuf;
-  if( nn < len) return 0;
-  //
-  if((bot+len)<mbuf)
-  {  nn=len;
-     for(int ii=0; ii<nn; ii++) *data++ = buffer[bot++];
-  }
-  else
-  {  nn=mbuf-bot;
-     for(int ii=0; ii<nn; ii++) *data++ = buffer[bot++];
-     bot=0;
-     for(int ii=0; ii<len-nn; ii++) *data++ = buffer[bot++];
-  }
- 
-  return len;
+int16_t *c_buff::get(uint16_t len)
+{ if(nr+len > nw) return 0;
+
+  int16_t *ptr = (int16_t *) &buffer[nr % mbuf];
+  nr += len;
+  return ptr;
 }
 
 /************************ AudioInterface **************************************************************/
-//
-	int16_t src_buffer[(2*AUDIO_BLOCK_SAMPLES*3750)/441]; // storage for up to 375 kHz stereo data
 //
 
 void AudioInterface::init(c_buff *store, int fsamp)
 { 	audioStore = store;
 	jfs1=fsamp;
 	jfs2=44100;
-	
+
+	// remove tailing zeros
 	while( ((jfs1 % 10) ==0) && ((jfs2 % 10))==0) { jfs1 /= 10; jfs2 /= 10; } 
 	jfs1 *= 10; jfs2 *= 10;
 	//
 	n_src=(uint16_t)((AUDIO_BLOCK_SAMPLES*jfs1)/jfs2); // number od samples in src_buffer
 	//
-	sc = (float) (n_src+1) / (float) (AUDIO_BLOCK_SAMPLES+1);	
+	sc = (float) (n_src) / (float) (AUDIO_BLOCK_SAMPLES);	
 }
 
 void AudioInterface::interpolate(int16_t *dst, const int16_t *src)
@@ -107,10 +85,10 @@ void AudioInterface::interpolate(int16_t *dst, const int16_t *src)
 		if(j0 == (n_src-1)) j0=n_src-2;
 		
 		// distance to index 
-		dx1 = tx - (float)j0;
+		dx1 = 0*(tx - (float)j0);
 		dst[ii] = src[2*j0]
 					+ ((src[2*j0+2] - src[2*j0-2])/2)*dx1
-					+ ((src[2*j0+2] - 2*src[2*j0] + src[2*j0-2])/4)*dx1*dx1;
+					+ (((src[2*j0+2] - src[2*j0]) - (src[2*j0] - src[2*j0-2]))/4)*dx1*dx1;
 	}
 }
 
@@ -118,14 +96,10 @@ void AudioInterface::update(void)
 {	const int16_t *src;
 	int16_t *dst;
 	audio_block_t *left, *right;
+	int16_t *src_buffer;
 	//
-	static int nn=0;
-	//
-	int ndat=4*n_src;
-	int n2=audioStore->get((uint8_t *)src_buffer, ndat); // number of bytes for stereo
-	
-	// check if we have sufficient data
-	if(n2 < ndat) return;
+	src_buffer = audioStore->get(n_src);
+	if(!src_buffer) { return; }
 	
 	left = allocate();  if (!left) return;
 	right = allocate(); if (!right) return;
@@ -140,8 +114,6 @@ void AudioInterface::update(void)
 	//
 	interpolate(dst, src);
 	
-	nn++;
-	nn %= jfs2;
 	transmit(left,0);
 	transmit(right,1);
 	release(left);

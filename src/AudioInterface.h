@@ -37,18 +37,18 @@
 
 class c_buff
 {
-	uint16_t top;
-	uint16_t bot;
-	uint8_t * buffer;
-	uint32_t mbuf;
+	uint32_t nw; 	// write index
+	uint32_t nr;	// read index
+	uint32_t * buffer;
+	uint32_t mbuf;	// buffer length
 public:
 	//
-	c_buff(uint8_t *data, uint32_t len) 
-	{	buffer=data; mbuf=len; top=0; bot=0; for(int ii=0; ii<mbuf; ii++) buffer[ii]=0; };
-	uint16_t put(uint8_t * data, uint16_t len);
-	uint16_t get(uint8_t * data, uint16_t len);
-	uint16_t get_top() {return top;}
-	uint16_t get_bot() {return bot;}
+	c_buff(uint32_t *data, uint32_t len) 
+	{	buffer=data; mbuf=len; nw=0; nr=0; for(int ii=0; ii<mbuf; ii++) buffer[ii]=0; };
+	uint16_t put(uint32_t * data, uint16_t len);
+	int16_t *get(uint16_t len);
+	uint16_t get_top() {return nw;}
+	uint16_t get_bot() {return nr;}
 };
 
 /************************ AudioInterface **************************************************************/
