@@ -1,6 +1,5 @@
 //Copyright 2017 by Walter Zimmer
 // Version 03-07-17
-//========================= DO NOT USE THIS EXAMPLE, AS IT IS NOT TESTED =====================================
 //
 // in addition to teensy core
 // this application needs to be set for 
@@ -222,7 +221,10 @@ C_CONV mConv;
   nj = (int32_t *)ov + nch*nf*(nn-ll); // index to FDL
  */
 float imp[N_FILT*(MM+1)];
-float dsp_buffer[3*N_FFT + 2*N_CHAN*N_FILT*N_FFT + N_CHAN*N_FILT*(N_FFT-N_SAMP) + N_FILT];
+float dsp_buffer[3*N_FFT                        // for uu,vv,ww fft buffers
+                + 2*N_CHAN*N_FILT*N_FFT         // for bb,zz  filter, spectrum store
+                + N_CHAN*N_FILT*(N_FFT-N_SAMP)  // for ov overlap buffer
+                + N_FILT];                      // for nj index into FDL
 
 float pwr[N_CHAN*N_FFT];
 
@@ -249,15 +251,15 @@ void c_myApp::setup()
 #endif
 
   // wait for serial line to come up
-  pinMode(13,OUTPUT);
+  pinMode(13,OUTPUT); // for LED
   pinMode(13,HIGH);
 
 #ifdef DO_DEBUG
   while(!Serial) blink(100);
   Serial.println("I2S Logger and Monitor");
 #endif
-  pinMode(1,OUTPUT);
-  pinMode(2,OUTPUT);
+  pinMode(1,OUTPUT);  // for I2SProcessing
+  pinMode(2,OUTPUT);  //
   
 #ifdef DO_DSP
   dsp_init();
