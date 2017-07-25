@@ -111,7 +111,11 @@ void blink(uint32_t msec)
 
 /************************** logger prototypes *************************************/
 #ifdef DO_LOGGER
-  #include "logger.h"
+	#include "logger.h"
+	header_s header;
+
+	void loggerSetup(uint32_t nch, uint32_t fsamp);
+	void loggerLoop(void);
 #endif
 
 /************************** dsp forward prototypes *************************************/
@@ -196,26 +200,16 @@ void i2sInProcessing(void * s, void * d)
 #ifdef DO_USB_AUDIO
 	static int16_t waveform[2*N_SAMP]; // store for stereo usb-audio data
 
-	static inline void usbAudio_init(void)
-	{
-		AudioMemory(8);
-
+	inline void usbAudio_init(void)
+	{	AudioMemory(8);
 	}
 
-	static inline void usbAudio_write(int32_t *out, uint32_t len)
-	{
-		// prepare data for USB-Audio
+	inline void usbAudio_write(int32_t *buf, uint32_t len)
+	{	// prepare data for USB-Audio
 		// extract data from I2S buffer
 		for(int ii=0; ii<len; ii++)
-		{
-			waveform[2*ii]  =(int16_t)(out[ICHAN_LEFT +ii*N_CHAN]>>AUDIO_SHIFT);
-			waveform[2*ii+1]=(int16_t)(out[ICHAN_RIGHT+ii*N_CHAN]>>AUDIO_SHIFT);
-		/*
-			float arg=2.0f*3.1415926535f*15.0f*(float)ii/(float) N_SAMP;
-			float amp=(float)(1<<12);
-			waveform[2*ii]   = (int16_t)(amp*sinf(arg));
-			waveform[2*ii+1] = waveform[2*ii];
-		*/
+		{	waveform[2*ii]  =(int16_t)(buf[ICHAN_LEFT +ii*N_CHAN]>>AUDIO_SHIFT);
+			waveform[2*ii+1]=(int16_t)(buf[ICHAN_RIGHT+ii*N_CHAN]>>AUDIO_SHIFT);
 		}
 		// put data onto audioStore
 		audioStore.put((uint32_t *) waveform, N_SAMP); //  2x 16-bit channels
@@ -266,7 +260,7 @@ void i2sInProcessing(void * s, void * d)
 
 	float pwr[N_CHAN*N_FFT];
 
-	static inline void dsp_init()
+	inline void dsp_init()
 	{
 	  float fc  =  5.0f/(F_SAMP/2000.0f);
 	  float dfc =  5.0f/(F_SAMP/2000.0f);
@@ -275,7 +269,7 @@ void i2sInProcessing(void * s, void * d)
 	  mConv.init(imp, dsp_buffer, N_CHAN, N_FILT, N_SAMP, N_FFT, MM);
 	}
 
-	static inline void dsp_exec(int32_t * dst, int32_t *src)
+	inline void dsp_exec(int32_t * dst, int32_t *src)
 	{
 		mConv.exec_upos(dst,pwr,src);
 	}
@@ -333,16 +327,14 @@ inline void acqLoop(void)
 }
 
 #ifdef DO_LOGGER
-	header_s header;
-
-	static void loggerSetup(void)
+	void loggerSetup(uint32_t nch, uint32_t fsamp)
 	{
-		header.nch = N_CHAN;
-		header.fsamp = F_SAMP;
+		header.nch = nch;
+		header.fsamp = fsamp;
 		logger_init(&header);
 	}
 
-	static void loggerLoop(void)
+	void loggerLoop(void)
 	{
 		static uint16_t appState = 0;
 
@@ -387,7 +379,7 @@ void c_myApp::setup()
 	#endif
 
 	#ifdef DO_LOGGER
-		loggerSetup();
+		loggerSetup(N_CHAN, F_SAMP);
 	#endif
 
 	if(acqSetup()) acqStart();
