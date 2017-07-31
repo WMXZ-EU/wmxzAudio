@@ -1,8 +1,8 @@
 //Copyright 2017 by Walter Zimmer
 // Version 22-07-17
 //
-#ifndef config_h
-#define config_h
+#ifndef CONFIG_H
+#define CONFIG_H
 
 /****************** Custom ************************************************/
 #define DO_DEBUG
@@ -12,7 +12,7 @@
 
 #define FMT "0_%05u.dat"    // defines filename
 
-#define MXFN 2           // maximal number of files 
+#define MXFN 2          // maximal number of files
 
 
 //#define MAX_BLOCK_COUNT 1000  // number of BUFFSIZE writes to file (defines file size)
@@ -67,8 +67,9 @@
 // for 1 minute data per file  
 // N_K = ceil((60*F_SAMP - 6816*128)/(128*8*1024)
 // approximate:
-  #define N_K (60*F_SAMP)>>20
-  #define MAX_BLOCK_COUNT (4*(109+N_K*131)) // for (128 +3)record size
+//  #define N_K 				((60*F_SAMP)>>20)	// number of super clusters per file
+//  #define MAX_BLOCK_COUNT	(4*(109+N_K*131))	// for (128 +3)record size
 
+#define MAX_BLOCK_COUNT (10*131) // about 26 seconds
 #endif
 

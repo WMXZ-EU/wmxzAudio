@@ -6,21 +6,23 @@
 
 extern "C"
 {
-void setup();
-void loop();
+	void setup();
+	void loop();
 }
 
 #include "myApp.h"
 c_myApp myApp;
+
 /*-----------------------------------------------------------*/
 void setup()
 {
-  // wait for serial line to come up
-  myApp.setup();
+	// wait for serial line to come up
+	myApp.setup();
 }
 
 void loop()
-{ myApp.loop();
+{
+	myApp.loop();
 }
 
 

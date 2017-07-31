@@ -12,6 +12,183 @@
  * description of API should be obvious from uSDFS example below
  *
 */
+void blink(uint32_t msec);
+
+#define MFS  0
+#if MFS == 0
+
+// from generic FAT
+//------------------------------------------------------------------------------
+/**
+ * \struct partitionTable
+ * \brief MBR partition table entry
+ *
+ * A partition table entry for a MBR formatted storage device.
+ * The MBR partition table has four entries.
+ */
+struct partitionTable {
+          /**
+           * Boot Indicator . Indicates whether the volume is the active
+           * partition.  Legal values include: 0X00. Do not use for booting.
+           * 0X80 Active partition.
+           */
+  uint8_t  boot;
+          /**
+            * Head part of Cylinder-head-sector address of the first block in
+            * the partition. Legal values are 0-255. Only used in old PC BIOS.
+            */
+  uint8_t  beginHead;
+          /**
+           * Sector part of Cylinder-head-sector address of the first block in
+           * the partition. Legal values are 1-63. Only used in old PC BIOS.
+           */
+  unsigned beginSector : 6;
+           /** High bits cylinder for first block in partition. */
+  unsigned beginCylinderHigh : 2;
+          /**
+           * Combine beginCylinderLow with beginCylinderHigh. Legal values
+           * are 0-1023.  Only used in old PC BIOS.
+           */
+  uint8_t  beginCylinderLow;
+          /**
+           * Partition type. See defines that begin with PART_TYPE_ for
+           * some Microsoft partition types.
+           */
+  uint8_t  type;
+          /**
+           * head part of cylinder-head-sector address of the last sector in the
+           * partition.  Legal values are 0-255. Only used in old PC BIOS.
+           */
+  uint8_t  endHead;
+          /**
+           * Sector part of cylinder-head-sector address of the last sector in
+           * the partition.  Legal values are 1-63. Only used in old PC BIOS.
+           */
+  unsigned endSector : 6;
+           /** High bits of end cylinder */
+  unsigned endCylinderHigh : 2;
+          /**
+           * Combine endCylinderLow with endCylinderHigh. Legal values
+           * are 0-1023.  Only used in old PC BIOS.
+           */
+  uint8_t  endCylinderLow;
+           /** Logical block address of the first block in the partition. */
+  uint32_t firstSector;
+           /** Length of the partition, in blocks. */
+  uint32_t totalSectors;
+}__attribute__((packed));
+/** Type name for partitionTable */
+typedef struct partitionTable part_t;
+
+//------------------------------------------------------------------------------
+/**
+ * \struct masterBootRecord
+ * \brief Master Boot Record
+ * The first block of a storage device that is formatted with a MBR.
+ */
+struct masterBootRecord {
+           /** Code Area for master boot program. */
+  uint8_t  codeArea[440];
+           /** Optional Windows NT disk signature. May contain boot code. */
+  uint32_t diskSignature;
+           /** Usually zero but may be more boot code. */
+  uint16_t usuallyZero;
+           /** Partition tables. */
+  part_t   part[4];
+           /** First MBR signature byte. Must be 0X55 */
+  uint8_t  mbrSig0;
+           /** Second MBR signature byte. Must be 0XAA */
+  uint8_t  mbrSig1;
+}__attribute__((packed));
+/** Type name for masterBootRecord */
+typedef struct masterBootRecord mbr_t;
+
+//------------------------------------------------------------------------------
+
+
+#include "sdio.h"
+#undef WRITE_SYNCHRONIZE
+#define WRITE_SYNCHRONIZE  0
+
+// storage to keep master boot record
+mbr_t mbr;
+
+extern "C" uint32_t MA,MB;
+
+class c_mFS
+{
+  private:
+	uint32_t sector=0;
+	uint32_t size = 0;
+    /* Stop with dying message */
+    void die(char *str)
+    {
+#ifdef DO_DEBUG
+      Serial.printf("%s: failed.\n\r", str); Serial.flush();
+#endif
+      for (;;) {yield(); blink(100);}
+    }
+
+  public:
+    void format(uint8_t *work, uint32_t nb)
+    {
+    }
+
+    void init(void)
+    {
+		SDHC_InitCard();
+		sector = 0;
+		read((uint8_t *) &mbr,512);
+
+		sector=mbr.part[0].firstSector;
+		size=mbr.part[0].totalSectors;
+
+		#define DO_DEBUG1
+		#ifdef DO_DEBUG1
+			for(int ii=0;ii<4;ii++)
+				Serial.printf(" %d %d\r\n", mbr.part[ii].firstSector, mbr.part[ii].totalSectors);
+			Serial.printf("MA %d; MB %d\n\r",MA,MB);
+		#endif
+    }
+
+    void open(char * filename)
+    {
+    }
+
+    void close(void)
+    {
+    }
+
+    uint32_t write(uint8_t *buffer, uint32_t nbuf)
+    {
+    	if(sector>size) return 0;
+
+    	uint32_t count = nbuf/SDHC_BLOCK_SIZE;
+		SDHC_DMAWait();	// make sure uSD card is not busy
+		SDHC_WriteBlocks(buffer, sector, count);
+		#if WRITE_SYNCHRONIZE==1
+			SDHC_DMAWait();
+		#endif
+    	sector += count;
+    	return nbuf;
+    }
+
+    uint32_t read(uint8_t *buffer, uint32_t nbuf)
+    {
+    	if(sector>size) return 0;
+
+    	uint32_t count = nbuf/SDHC_BLOCK_SIZE;
+		SDHC_DMAWait();	// make sure uSD card is not busy
+		SDHC_ReadBlocks(buffer, sector, count);
+		SDHC_DMAWait();	// wait always when reading
+    	sector += count;
+    	return nbuf;
+    }
+};
+
+c_mFS mFS;
+
+#elif MFS == 1
 
 #include "ff.h"
 #include "ff_utils.h"
@@ -131,9 +308,9 @@ c_mFS mFS;
 /*
   end of FS specific interface
 */
-
+#endif
 /*
- * Some useful feature to protect a varable from interrupt
+ * Some useful feature to protect a variable handling from interrupt
  */
 //--------------------------------------------------
 class mProtect
@@ -159,5 +336,4 @@ inline uint32_t mProtect::operator==(const uint32_t x)
   __enable_irq();
   return ret;
 }
-
 

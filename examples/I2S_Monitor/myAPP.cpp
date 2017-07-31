@@ -40,7 +40,7 @@
 
 // enable either logger
 // or USB_AUDIO
-//#define DO_LOGGER
+#define DO_LOGGER
 #ifndef DO_LOGGER
   #define DO_USB_AUDIO
   #define DO_DSP
@@ -141,7 +141,7 @@ uint32_t i2sErrCount=0;
 #ifndef DO_DSP
 inline void mCopy(int32_t *dst, int32_t *src, uint32_t len)
 {
-	for(int ii=0;ii<len;ii++) dst[ii]=src[ii];
+	for(uint32_t ii=0;ii<len;ii++) dst[ii]=src[ii];
 }
 #endif
 
@@ -287,6 +287,7 @@ static inline uint16_t acqSetup(void)
 		#ifdef DO_DEBUG
 			Serial.printf("Fsamp requested: %.3f kHz  got %.3f kHz\n\r" ,
 					F_SAMP/1000.0f, fs/1000.0f);
+			Serial.flush();
 		#endif
 		return 1;
 	}
@@ -327,9 +328,10 @@ inline void acqLoop(void)
 }
 
 #ifdef DO_LOGGER
-	void loggerSetup(uint32_t nch, uint32_t fsamp)
+	void loggerSetup(uint32_t nch, uint32_t fsamp, uint32_t nsamp)
 	{
 		header.nch = nch;
+		header.nsamp = nsamp;
 		header.fsamp = fsamp;
 		logger_init(&header);
 	}
@@ -379,7 +381,7 @@ void c_myApp::setup()
 	#endif
 
 	#ifdef DO_LOGGER
-		loggerSetup(N_CHAN, F_SAMP);
+		loggerSetup(N_CHAN, F_SAMP, N_SAMP);
 	#endif
 
 	if(acqSetup()) acqStart();

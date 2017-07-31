@@ -14,7 +14,10 @@ typedef struct
   uint32_t nch;
   uint32_t fsamp;
   uint32_t fsize;
-  uint32_t fill[128-5];
+  uint32_t nsamp;
+  uint32_t hsize;
+  uint32_t nclst;
+  uint32_t fill[128-8];
 } header_s;
 
 // function prototypes
