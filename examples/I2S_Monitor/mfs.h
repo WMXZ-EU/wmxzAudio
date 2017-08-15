@@ -14,8 +14,8 @@
 */
 void blink(uint32_t msec);
 
-#define MFS  0
-#if MFS == 0
+#define MFS  2
+#if MFS == 0 /******************************************************************** NO FS WMXZ's SDHC driver*******************************************************/
 
 // from generic FAT
 //------------------------------------------------------------------------------
@@ -188,7 +188,11 @@ class c_mFS
 
 c_mFS mFS;
 
-#elif MFS == 1
+/**
+ * 
+ */
+
+#elif MFS == 1 /******************************************************************** WMXZ's uSDFS *******************************************************/
 
 #include "ff.h"
 #include "ff_utils.h"
@@ -305,10 +309,78 @@ class c_mFS
 
 c_mFS mFS;
 
+/**
+ * 
+ */
+
+#elif MFS == 2	 /******************************************************************** Bill's SdFs *******************************************************/
+
+#include "SdFs.h"
+
+
+class c_mFS
+{
+  private:
+	SdFs sd;
+	FsFile file;
+    
+	
+	void errorHalt(const char* msg) {
+	  Serial.print("Error: ");
+	  Serial.println(msg);
+	  if (sd.sdErrorCode()) {
+		if (sd.sdErrorCode() == SD_CARD_ERROR_ACMD41) {
+		  Serial.println("Try power cycling the SD card.");
+		}
+		printSdErrorSymbol(&Serial, sd.sdErrorCode());
+		Serial.print(", ErrorData: 0X");
+		Serial.println(sd.sdErrorData(), HEX);
+	  }
+	while(true);  
+	}
+	
+	
+  public:
+    void format(uint8_t *work, uint32_t nb)
+    {
+    }
+    
+    void init(void)
+    {
+		if (!sd.begin(SdioConfig(DMA_SDIO))) errorHalt("begin failed");
+    
+    void open(char * filename)
+    {
+		if (!file.open(filename, O_RDWR | O_CREAT)) errorHalt("open failed");
+    }
+
+    void close(void)
+    {
+		file.close();
+    }
+
+    uint32_t write(uint8_t *buffer, uint32_t nbuf)
+    {      
+		if (nbuf != file.write(buffer, nbuf)) errorHalt("write failed");
+		return nbuf;
+    }
+
+    uint32_t read(uint8_t *buffer, uint32_t nbuf)
+    {      
+		if ((int)nbuf != file.read(buffer, nbuf)) errorHalt("read failed");
+		return nbuf;
+    }
+};
+
+c_mFS mFS;
+
+
+#endif
 /*
   end of FS specific interface
 */
-#endif
+
+
 /*
  * Some useful feature to protect a variable handling from interrupt
  */

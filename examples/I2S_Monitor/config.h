@@ -12,7 +12,7 @@
 
 #define FMT "0_%05u.dat"    // defines filename
 
-#define MXFN 2          // maximal number of files
+#define MXFN 100         // maximal number of files
 
 
 //#define MAX_BLOCK_COUNT 1000  // number of BUFFSIZE writes to file (defines file size)

@@ -384,6 +384,8 @@ void c_myApp::setup()
 		loggerSetup(N_CHAN, F_SAMP, N_SAMP);
 	#endif
 
+	NVIC_SET_PRIORITY(IRQ_USBOTG, 9*16);
+
 	if(acqSetup()) acqStart();
 }
 
